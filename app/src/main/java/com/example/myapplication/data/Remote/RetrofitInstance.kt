@@ -17,8 +17,7 @@ object RetrofitInstance {
      * Aquí debes poner la URL que te da ngrok (ejemplo: https://abc123.ngrok-free.app/)
      * Importante: debe terminar con "/"
      */
-    private const val BASE_URL = "https://TU-URL-NGROK.ngrok-free.app/"
-
+    private const val BASE_URL = "https://gating-snore-visiting.ngrok-free.dev/"
     /**
      * Interceptor que muestra en el Logcat todas las peticiones y respuestas.
      * Muy útil para depurar (ver qué se envía y qué responde el servidor).
