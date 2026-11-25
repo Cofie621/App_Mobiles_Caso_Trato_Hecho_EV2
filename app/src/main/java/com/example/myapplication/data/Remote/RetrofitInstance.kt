@@ -32,6 +32,15 @@ object RetrofitInstance {
      * Aquí configuramos el interceptor de logs y los tiempos de espera.
      */
     private val client = OkHttpClient.Builder()
+        // ngrok (versión gratis) puede responder con una página HTML de advertencia
+        // en vez del JSON. Este header le dice a ngrok que la omita.
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .addHeader("ngrok-skip-browser-warning", "true")
+                .addHeader("Content-Type", "application/json")
+                .build()
+            chain.proceed(request)
+        }
         .addInterceptor(logging)                    // Agrega los logs
         .connectTimeout(30, TimeUnit.SECONDS)       // Tiempo máximo para conectar
         .readTimeout(30, TimeUnit.SECONDS)          // Tiempo máximo para recibir respuesta

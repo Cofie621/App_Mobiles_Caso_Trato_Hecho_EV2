@@ -1,39 +1,94 @@
 package com.example.myapplication.repository
 
-import com.example.myapplication.data.remote.RetrofitInstance
-import com.example.myapplication.data.remote.LoginResponse
+import android.content.Context
+import com.example.myapplication.AlmacenamientoLocal
+import com.example.myapplication.model.CotizacionItem
+import com.example.myapplication.data.remote.CotizacionRequest
 import com.example.myapplication.data.remote.LoginRequest
+import com.example.myapplication.data.remote.LoginResponse
+import com.example.myapplication.data.remote.RetrofitInstance
 
 class LoginRepository {
-    // Obtenemos la instancia de la API desde RetrofitInstance
     private val api = RetrofitInstance.api
 
-
-/**
- * Función que intenta iniciar sesión.
- * @param tenantId Identificador de la empresa
- * @param correo Correo del usuario
- * @param clave Contraseña
- * @return Result<LoginResponse> → success si todo salió bien, failure si hubo error
- */
-suspend fun login(tenantid: String, correo: String, clave: String): Result<LoginResponse> {
-        return try{
-            // Creamos el objeto con los datos del login
-            val request = LoginRequest(tenantid, correo, clave)
-
-            // Hacemos la llamada a la API
+    suspend fun login(tenantId: String, correo: String, clave: String): Result<LoginResponse> {
+        return try {
+            val request = LoginRequest(tenantId, correo, clave)
             val response = api.login(request)
-
-            // Verificamos si la respuesta fue exitosa (código 200-299)
-            if (response.isSuccessful) {
-                // Si fue exitosa, retornamos el cuerpo de la respuesta
+            if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!)
             } else {
-                // El servidor respondió con error (400, 401, 500, etc.)
-                Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+                Result.failure(Exception("Error servidor: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+class CotizacionRepository(private val context: Context) {
+    // Instancia de la API
+    private val api = RetrofitInstance.api
+
+    /**
+     * Guarda una cotización.
+     * Primero la guarda localmente (para que no se pierda)
+     * y después intenta enviarla al servidor.
+     *
+     * @return Result<Unit> → success si se envió al servidor, failure si solo se guardó local
+     */
+
+    suspend fun guardarCotizacion(
+        tenantId: String,
+        moneda: String,
+        items: List<CotizacionItem>,
+        subtotal: Double,
+        impuesto: Double,
+        total: Double
+    ): Result<Unit>{
+        // 1. Siempre guardamos localmente primero (seguridad)
+        AlmacenamientoLocal.guardarCotizaciones(context, items)
+
+        // 2. Intentamos enviar al servidor
+        return try{
+            val request = CotizacionRequest(tenantId, moneda, items, subtotal, impuesto, total)
+
+            val response = api.guardarCotizacion(request)
+
+            if (response.isSuccessful){
+                // Se guardó correctamente en el servidor
+                Result.success(Unit)
+            } else {
+                // El servidor respondió con error
+                Result.failure(Exception("Error servidor: ${response.code()}"))
             }
         }catch (e: Exception){
-            // Error de red, timeout, o cualquier otra excepción
+            // Falló la conexión (sin internet, ngrok caído, etc.)
+            // Pero la cotización ya quedó guardada localmente
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Obtiene las cotizaciones guardadas en el dispositivo (SharedPreferences).
+     * Esta función es síncrona porque lee datos locales.
+     */
+    fun obtenerCotizaciones(): List<CotizacionItem> {
+        return AlmacenamientoLocal.obtenerCotizaciones(context)
+    }
+
+    /**
+     * Obtiene las cotizaciones guardadas en el servidor (GET api/cotizaciones).
+     */
+    suspend fun obtenerCotizacionesServidor(): Result<List<CotizacionItem>> {
+        return try {
+            val response = api.obtenerCotizaciones()
+            if (response.isSuccessful) {
+                Result.success(response.body() ?: emptyList())
+            } else {
+                Result.failure(Exception("Error servidor: ${response.code()}"))
+            }
+        } catch (e: Exception) {
             Result.failure(e)
         }
     }

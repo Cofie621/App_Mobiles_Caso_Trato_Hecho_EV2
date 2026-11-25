@@ -1,6 +1,6 @@
 package com.example.myapplication.data.remote
 
-import com.example.myapplication.data.model.CotizacionItem
+import com.example.myapplication.model.CotizacionItem
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET

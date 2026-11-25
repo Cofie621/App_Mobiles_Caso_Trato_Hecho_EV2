@@ -64,7 +64,7 @@ fun CotizacionScreen(
 
             // Nombre de usuario dinámico traído desde LoginViewModel
             Text(
-                text = "${estadoLogin.tenantId.ifBlank { "Nombre usuario" }}",
+                text = estadoLogin.tenantId.ifBlank { "Nombre usuario" },
                 fontSize = 13.sp,
                 color = Color.Gray
             )
@@ -197,7 +197,7 @@ fun CotizacionScreen(
                     Text(text = "Subtotal: \$${cotizacionViewModel.calcularSubtotal()}", fontSize = 12.sp)
                     Text(text = "Descuento Aplicado (%): 0%", fontSize = 12.sp)
                     Text(text = "Impuesto: \$${cotizacionViewModel.calcularImpuesto()}", fontSize = 12.sp)
-                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     Text(
                         text = "TOTAL FINAL: \$${cotizacionViewModel.calcularTotalFinal()} ${estadoCotizacion.moneda}",
                         fontSize = 13.sp,
@@ -209,12 +209,28 @@ fun CotizacionScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Botón final de envío
+        // Resultado del envío a la API
+        estadoCotizacion.mensajeEnvio?.let { mensaje ->
+            Text(text = mensaje, fontSize = 12.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(4.dp))
+        }
+
+        // Botón final de envío → POST api/cotizaciones y luego va al resumen
         Button(
-            onClick = { navController.navigate("resumen") },
+            onClick = {
+                cotizacionViewModel.enviarCotizacion(estadoLogin.tenantId) {
+                    // Navegamos aunque falle: la cotización ya quedó guardada localmente
+                    navController.navigate("resumen")
+                }
+            },
+            enabled = !estadoCotizacion.enviando,
             modifier = Modifier.fillMaxWidth().height(48.dp)
         ) {
-            Text(text = "FINALIZAR Y ENVIAR AL CLIENTE", fontSize = 13.sp)
+            if (estadoCotizacion.enviando) {
+                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            } else {
+                Text(text = "FINALIZAR Y ENVIAR AL CLIENTE", fontSize = 13.sp)
+            }
         }
     }
 }

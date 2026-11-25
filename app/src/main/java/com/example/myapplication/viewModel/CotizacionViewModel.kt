@@ -1,18 +1,25 @@
 package com.example.myapplication.viewModel
 
-import com.example.myapplication.data.model.CotizacionEstado
-import com.example.myapplication.data.model.CotizacionItem
+import com.example.myapplication.model.CotizacionEstado
+import com.example.myapplication.model.CotizacionItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import com.example.myapplication.AlmacenamientoLocal
+import com.example.myapplication.repository.CotizacionRepository
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 
 class CotizacionViewModel(application: Application) : AndroidViewModel(application) {
 
     private val context = getApplication<Application>().applicationContext
+
+    // Repositorio que guarda local y envía a la API (Retrofit)
+    private val repository = CotizacionRepository(context)
+
     private val _uiState = MutableStateFlow(
         CotizacionEstado(items = AlmacenamientoLocal.obtenerCotizaciones(context))
     )
@@ -56,5 +63,51 @@ class CotizacionViewModel(application: Application) : AndroidViewModel(applicati
 
             estadoActual.copy(items = nuevaLista)
         }
+    }
+
+    /**
+     * Envía la cotización actual a la API (POST api/cotizaciones).
+     * Siempre queda guardada localmente; si el servidor falla,
+     * se muestra el mensaje pero no se pierde nada.
+     *
+     * @param tenantId Empresa/usuario que hizo login
+     * @param alTerminar Se llama al finalizar (con éxito o error), útil para navegar
+     */
+    fun enviarCotizacion(tenantId: String, alTerminar: (exito: Boolean) -> Unit = {}) {
+        val estado = _uiState.value
+        if (estado.items.isEmpty()) {
+            _uiState.update { it.copy(mensajeEnvio = "Agrega al menos un producto") }
+            return
+        }
+
+        _uiState.update { it.copy(enviando = true, mensajeEnvio = null) }
+
+        viewModelScope.launch {
+            val resultado = repository.guardarCotizacion(
+                tenantId = tenantId,
+                moneda = estado.moneda,
+                items = estado.items,
+                subtotal = calcularSubtotal(),
+                impuesto = calcularImpuesto(),
+                total = calcularTotalFinal()
+            )
+
+            val exito = resultado.isSuccess
+            _uiState.update {
+                it.copy(
+                    enviando = false,
+                    mensajeEnvio = if (exito) {
+                        "Cotización enviada al servidor"
+                    } else {
+                        "Guardada solo en el teléfono: ${resultado.exceptionOrNull()?.message ?: "error de conexión"}"
+                    }
+                )
+            }
+            alTerminar(exito)
+        }
+    }
+
+    fun limpiarMensajeEnvio() {
+        _uiState.update { it.copy(mensajeEnvio = null) }
     }
 }

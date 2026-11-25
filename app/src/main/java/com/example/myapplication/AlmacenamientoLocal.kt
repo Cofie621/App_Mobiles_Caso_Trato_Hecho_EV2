@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.example.myapplication.data.model.CotizacionItem
+import com.example.myapplication.model.CotizacionItem
 
 // Objeto singleton para manejar el almacenamiento local persistente con SharedPreferences
 object AlmacenamientoLocal {

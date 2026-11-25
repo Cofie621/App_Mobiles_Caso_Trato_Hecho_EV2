@@ -20,6 +20,14 @@ fun LoginScreen(
     val estado by viewModel.estado.collectAsState()
     var recordar by remember { mutableStateOf(false) }
 
+    // Cuando la API confirma el login, navegamos al panel principal
+    LaunchedEffect(estado.loginExitoso) {
+        if (estado.loginExitoso) {
+            navController.navigate("main")
+            viewModel.consumirLoginExitoso()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -92,20 +100,31 @@ fun LoginScreen(
             }
         }
 
+        // Mensaje de error devuelto por la API (o de conexión)
+        estado.mensajeError?.let { error ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Botón Iniciar Sesión
+        // Botón Iniciar Sesión → llama a la API
         Button(
-            onClick = {
-                if (viewModel.validarLogin()) {
-                    navController.navigate("main")
-                }
-            },
+            onClick = { viewModel.iniciarSesion() },
+            enabled = !estado.cargando,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
-            Text(text = "Iniciar Sesion", fontSize = 16.sp)
+            if (estado.cargando) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(22.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(text = "Iniciar Sesion", fontSize = 16.sp)
+            }
         }
     }
 }
