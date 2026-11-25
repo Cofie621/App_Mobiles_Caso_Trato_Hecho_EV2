@@ -1,0 +1,48 @@
+# Trato Hecho App - Guía de Ejecución
+
+Proyecto compuesto por una aplicación móvil nativa en **Android (Kotlin + Jetpack Compose)** y una **API REST en Node.js (Express)** expuesta mediante **ngrok**.
+
+---
+
+## Requisitos previos
+* **Node.js** instalado.
+* **ngrok** descargado y vinculado con tu cuenta (`ngrok config add-authtoken <TU_TOKEN>`).
+* **Android Studio** con un emulador o dispositivo físico conectado.
+
+---
+
+## Pasos para ejecutar el proyecto
+
+### 1. Encender la API (Backend)
+1. Abre una terminal dentro de la carpeta `backend-api`.
+2. Instala las dependencias (solo la primera vez):
+   ```bash
+   npm install
+   ```
+3. Inicia el servidor en el puerto **8080**:
+   ```bash
+   node server.js
+   ```
+   *(Deberás ver el mensaje: `API Trato Hecho escuchando en http://localhost:8080`. Mantén esta terminal abierta).*
+
+---
+
+### 2. Encender el túnel con ngrok
+1. Abre otra terminal en la carpeta donde tienes `ngrok`.
+2. Expón el puerto **8080** a internet:
+   ```bash
+   ngrok http 8080
+   ```
+   *(En Windows PowerShell usa `.\ngrok http 8080`).*
+3. Copia la URL pública `https://...` que aparece en la línea **Forwarding** (mantén esta terminal abierta).
+
+---
+
+### 3. Conectar y ejecutar la App en Android Studio
+1. Abre el proyecto en **Android Studio**.
+2. Ve al archivo `app/src/main/java/com/example/myapplication/data/remote/RetrofitInstance.kt`.
+3. En la constante `BASE_URL`, pega la URL de ngrok asegurándote de que **termine con una barra `/`**:
+   ```kotlin
+   private const val BASE_URL = "https://ngrok-free.dev"
+   ```
+4. Presiona **Run** (▶) para compilar e iniciar la aplicación.

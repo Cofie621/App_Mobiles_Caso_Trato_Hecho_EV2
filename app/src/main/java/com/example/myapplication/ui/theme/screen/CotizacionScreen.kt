@@ -163,7 +163,8 @@ fun CotizacionScreen(
                         ) {
                             Text(
                                 text = "${item.cantidad} ----- ${item.descripcion} ----- ($${item.precio}), Cliente: ${item.NombreCliente}",
-                                fontSize = 11.sp
+                                fontSize = 11.sp,
+                                modifier = Modifier.weight(1f)
                             )
                             TextButton(
                                 onClick = { cotizacionViewModel.eliminarProducto(item.descripcion) },
