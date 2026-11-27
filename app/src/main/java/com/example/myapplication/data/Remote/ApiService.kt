@@ -1,6 +1,7 @@
 package com.example.myapplication.data.remote
 
 import com.example.myapplication.model.CotizacionItem
+import com.example.myapplication.model.Producto
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -43,27 +44,38 @@ data class CotizacionRequest(
 /**
  * Interfaz que define los endpoints (URLs) de nuestra API.
  * Retrofit se encarga de convertir estas funciones en llamadas HTTP reales.
+ *
+ * La API está hecha en PHP y corre en XAMPP (carpeta htdocs/trato_hecho).
+ * Las rutas se suman a BASE_URL, por ejemplo:
+ *   https://xxxx.ngrok-free.dev/trato_hecho/ + api/productos.php
  */
 interface ApiService {
 
     /**
      * Endpoint para iniciar sesión.
-     * Envía un POST a /api/login con los datos del usuario.
+     * Envía un POST a api/login.php con los datos del usuario.
      */
-    @POST("api/login")
+    @POST("api/login.php")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     /**
-     * Endpoint para guardar una cotización en el servidor.
-     * Envía un POST a /api/cotizaciones.
+     * Endpoint para obtener los productos de la tabla "productos".
+     * Hace un GET a api/productos.php.
      */
-    @POST("api/cotizaciones")
+    @GET("api/productos.php")
+    suspend fun obtenerProductos(): Response<List<Producto>>
+
+    /**
+     * Endpoint para guardar una cotización en el servidor.
+     * Envía un POST a api/cotizaciones.php.
+     */
+    @POST("api/cotizaciones.php")
     suspend fun guardarCotizacion(@Body request: CotizacionRequest): Response<Map<String, Any>>
 
     /**
-     * Endpoint para obtener las cotizaciones guardadas en el servidor.
-     * Hace un GET a /api/cotizaciones.
+     * Endpoint para obtener los productos cotizados guardados en el servidor.
+     * Hace un GET a api/cotizaciones.php.
      */
-    @GET("api/cotizaciones")
+    @GET("api/cotizaciones.php")
     suspend fun obtenerCotizaciones(): Response<List<CotizacionItem>>
 }

@@ -4,7 +4,8 @@ data class CotizacionItem(
     val descripcion: String,
     val precio: Double,
     val cantidad: Int = 1,
-    val NombreCliente: String
+    val NombreCliente: String,
+    val productoId: Int? = null     // id del producto en la tabla "productos"
 )
 
 data class CotizacionEstado(
@@ -13,5 +14,10 @@ data class CotizacionEstado(
 
     // Estado del envío a la API
     val enviando: Boolean = false,
-    val mensajeEnvio: String? = null
+    val mensajeEnvio: String? = null,
+
+    // Productos que vienen de la API (tabla productos en MySQL)
+    val productos: List<Producto> = emptyList(),
+    val cargandoProductos: Boolean = false,
+    val errorProductos: String? = null
 )

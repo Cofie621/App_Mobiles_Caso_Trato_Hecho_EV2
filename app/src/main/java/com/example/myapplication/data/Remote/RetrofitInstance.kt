@@ -13,11 +13,11 @@ import java.util.concurrent.TimeUnit
 object RetrofitInstance {
 
     /**
-     * URL base de tu API.
-     * Aquí debes poner la URL que te da ngrok (ejemplo: https://abc123.ngrok-free.app/)
-     * Importante: debe terminar con "/"
+     * URL base de tu API (PHP en XAMPP publicado con "ngrok http 80").
+     * Formato: https://<tu-url-de-ngrok>/trato_hecho/
+     * Importante: debe incluir "/trato_hecho/" y terminar con "/"
      */
-    private const val BASE_URL = "https://unelected-backtalk-unhitched.ngrok-free.dev/"
+    private const val BASE_URL = "https://unelected-backtalk-unhitched.ngrok-free.dev/trato_hecho/"
     /**
      * Interceptor que muestra en el Logcat todas las peticiones y respuestas.
      * Muy útil para depurar (ver qué se envía y qué responde el servidor).

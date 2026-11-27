@@ -1,48 +1,87 @@
-# Trato Hecho App - Guía de Ejecución
+# Trato Hecho App - Guía de Ejecución (XAMPP)
 
-Proyecto compuesto por una aplicación móvil nativa en **Android (Kotlin + Jetpack Compose)** y una **API REST en Node.js (Express)** expuesta mediante **ngrok**.
+El proyecto tiene 2 partes:
+* **App Android** (Kotlin + Jetpack Compose + Retrofit), en la carpeta `app/`.
+* **API REST en PHP + base de datos MySQL**, que corren en **XAMPP**, en la carpeta `backend-xampp/`.
+  Se publica en internet con **ngrok** para que el celular/emulador pueda llegar a ella.
+
+Los productos que aparecen en la app vienen de la tabla `productos` de MySQL.
 
 ---
 
 ## Requisitos previos
-* **Node.js** instalado.
-* **ngrok** descargado y vinculado con tu cuenta (`ngrok config add-authtoken <TU_TOKEN>`).
-* **Android Studio** con un emulador o dispositivo físico conectado.
+* **XAMPP** instalado (https://www.apachefriends.org).
+* **ngrok** instalado y vinculado a tu cuenta (`ngrok config add-authtoken <TU_TOKEN>`).
+* **Android Studio** con un emulador o un celular conectado.
 
 ---
 
-## Pasos para ejecutar el proyecto
+## 1. Encender XAMPP
+1. Abre el **XAMPP Control Panel**.
+2. Presiona **Start** en **Apache** y en **MySQL** (ambos deben quedar en verde).
 
-### 1. Encender la API (Backend)
-1. Abre una terminal dentro de la carpeta `backend-api`.
-2. Instala las dependencias (solo la primera vez):
-   ```bash
-   npm install
-   ```
-3. Inicia el servidor en el puerto **8080**:
-   ```bash
-   node server.js
-   ```
-   *(Deberás ver el mensaje: `API Trato Hecho escuchando en http://localhost:8080`. Mantén esta terminal abierta).*
+## 2. Crear la base de datos (solo la primera vez)
+1. En el navegador abre: http://localhost/phpmyadmin
+2. Pestaña **Importar** → **Seleccionar archivo** → elige `backend-xampp/database.sql`.
+3. Presiona **Importar** (o **Continuar**, abajo a la derecha).
+4. A la izquierda aparecerá la base **trato_hecho** con las tablas:
+   `productos`, `usuarios`, `cotizaciones` y `cotizacion_detalle`.
+
+> Para agregar o cambiar productos: phpMyAdmin → trato_hecho → productos → **Insertar** (o editar una fila).
+> La app los mostrará la próxima vez que abra la pantalla de cotización (o con "Reintentar").
+
+## 3. Copiar la API a XAMPP (solo la primera vez, o cuando cambie el PHP)
+Copia la carpeta `backend-xampp/trato_hecho` dentro de `C:\xampp\htdocs\`.
+Debe quedar así: `C:\xampp\htdocs\trato_hecho\index.php`
+
+Desde PowerShell (en la carpeta del proyecto):
+```powershell
+Copy-Item -Recurse -Force backend-xampp\trato_hecho C:\xampp\htdocs\
+```
+
+Prueba en el navegador: http://localhost/trato_hecho/
+Debe responder: `{"estado":"API Trato Hecho funcionando","mysql":"conectado","productos":8, ...}`
+
+## 4. Publicar la API con ngrok
+En una terminal (Apache usa el puerto **80**):
+```powershell
+ngrok http 80
+```
+Copia la URL de la línea **Forwarding** (ej: `https://algo.ngrok-free.dev`). Mantén la ventana abierta.
+
+Prueba en el navegador: `https://algo.ngrok-free.dev/trato_hecho/`
+
+## 5. Conectar la app
+En `app/src/main/java/com/example/myapplication/data/Remote/RetrofitInstance.kt`:
+```kotlin
+private const val BASE_URL = "https://algo.ngrok-free.dev/trato_hecho/"
+```
+**Importante:** debe incluir `/trato_hecho/` y terminar con `/`.
+
+Luego presiona **Run (▶)** en Android Studio.
+
+## 6. Datos para iniciar sesión
+| Correo                   | Contraseña |
+|--------------------------|------------|
+| admin@tratohecho.cl      | 1234       |
+| vendedor@tratohecho.cl   | 1234       |
+
+El campo "Nombre" puede ser cualquiera.
 
 ---
 
-### 2. Encender el túnel con ngrok
-1. Abre otra terminal en la carpeta donde tienes `ngrok`.
-2. Expón el puerto **8080** a internet:
-   ```bash
-   ngrok http 8080
-   ```
-   *(En Windows PowerShell usa `.\ngrok http 8080`).*
-3. Copia la URL pública `https://...` que aparece en la línea **Forwarding** (mantén esta terminal abierta).
+## Endpoints de la API
+| Método | Ruta                      | Qué hace                                  |
+|--------|---------------------------|-------------------------------------------|
+| POST   | api/login.php             | Inicia sesión (tabla usuarios)            |
+| GET    | api/productos.php         | Lista los productos activos               |
+| POST   | api/cotizaciones.php      | Guarda una cotización y su detalle        |
+| GET    | api/cotizaciones.php      | Lista los productos cotizados             |
 
----
-
-### 3. Conectar y ejecutar la App en Android Studio
-1. Abre el proyecto en **Android Studio**.
-2. Ve al archivo `app/src/main/java/com/example/myapplication/data/remote/RetrofitInstance.kt`.
-3. En la constante `BASE_URL`, pega la URL de ngrok asegurándote de que **termine con una barra `/`**:
-   ```kotlin
-   private const val BASE_URL = "https://ngrok-free.dev"
-   ```
-4. Presiona **Run** (▶) para compilar e iniciar la aplicación.
+## Problemas comunes
+* **"No se pudo conectar a MySQL"**: MySQL no está encendido en XAMPP o no se importó `database.sql`.
+* **Apache no arranca (puerto 80 ocupado)**: cierra Skype/IIS, o cambia el puerto de Apache
+  (Config → httpd.conf → `Listen 8080`) y usa `ngrok http 8080`.
+* **La app dice "No se pudieron cargar los productos"**: revisa que ngrok siga abierto y que `BASE_URL`
+  tenga `/trato_hecho/` al final. Abre esa misma URL en el navegador del celular para probar.
+* **La URL de ngrok cambió**: actualiza `BASE_URL` y vuelve a presionar Run.

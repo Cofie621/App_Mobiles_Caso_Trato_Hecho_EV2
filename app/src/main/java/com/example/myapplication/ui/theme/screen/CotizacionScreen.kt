@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.myapplication.model.Producto
 import com.example.myapplication.viewModel.CotizacionViewModel
 import com.example.myapplication.viewModel.LoginViewModel
 import androidx.compose.runtime.getValue
@@ -29,9 +30,10 @@ fun CotizacionScreen(
     val estadoCotizacion by cotizacionViewModel.uiState.collectAsState()
     val estadoLogin by loginViewModel.estado.collectAsState()
 
-    // Variables locales para capturar el producto y precio ingresados
-    var productoInput by remember { mutableStateOf("") }
-    var precioInput by remember { mutableStateOf("") }
+    // Producto elegido de la lista que viene de la API, y la cantidad
+    var productoSeleccionado by remember { mutableStateOf<Producto?>(null) }
+    var cantidadInput by remember { mutableStateOf("1") }
+    var menuAbierto by remember { mutableStateOf(false) }
 
     //Variable para tomar el nombre del cliente
     var nombreCliente by remember { mutableStateOf("") }
@@ -97,20 +99,73 @@ fun CotizacionScreen(
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = "ÍTEMS / PRODUCTOS", fontSize = 12.sp, fontWeight = FontWeight.Bold)
 
-            // Formulario para ingresar el nombre del producto y su precio
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Selector de productos: la lista viene de la API (tabla productos en MySQL)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(2f)) {
+                    OutlinedButton(
+                        onClick = { menuAbierto = true },
+                        enabled = estadoCotizacion.productos.isNotEmpty(),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = when {
+                                estadoCotizacion.cargandoProductos -> "Cargando productos..."
+                                productoSeleccionado != null ->
+                                    "${productoSeleccionado!!.nombre} - \$${productoSeleccionado!!.precio}"
+                                else -> "Elegir producto ▼"
+                            },
+                            fontSize = 12.sp,
+                            maxLines = 1
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = menuAbierto,
+                        onDismissRequest = { menuAbierto = false }
+                    ) {
+                        estadoCotizacion.productos.forEach { producto ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text("${producto.nombre} - \$${producto.precio}", fontSize = 13.sp)
+                                        producto.descripcion?.let {
+                                            Text(it, fontSize = 11.sp, color = Color.Gray)
+                                        }
+                                    }
+                                },
+                                onClick = {
+                                    productoSeleccionado = producto
+                                    menuAbierto = false
+                                }
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
-                    value = productoInput,
-                    onValueChange = { productoInput = it },
-                    placeholder = { Text("Producto") },
-                    modifier = Modifier.weight(2f)
-                )
-                OutlinedTextField(
-                    value = precioInput,
-                    onValueChange = { precioInput = it },
-                    placeholder = { Text("Precio") },
+                    value = cantidadInput,
+                    onValueChange = { nuevo -> cantidadInput = nuevo.filter { it.isDigit() }.take(4) },
+                    label = { Text("Cant.") },
+                    singleLine = true,
                     modifier = Modifier.weight(1f)
                 )
+            }
+
+            // Si la API falla, se muestra el error y un botón para reintentar
+            estadoCotizacion.errorProductos?.let { error ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = error,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = { cotizacionViewModel.cargarProductos() }) {
+                        Text("Reintentar", fontSize = 12.sp)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -129,13 +184,15 @@ fun CotizacionScreen(
             // Botón para agregar el ítem a la cotización
             Button(
                 onClick = {
-                    val precio = precioInput.toDoubleOrNull() ?: 0.0
-                    if (productoInput.isNotBlank() && precio > 0.0) {
-                        cotizacionViewModel.agregarProducto(productoInput, precio, 1, nombreCliente)
-                        productoInput = ""
-                        precioInput = ""
+                    val producto = productoSeleccionado
+                    val cantidad = cantidadInput.toIntOrNull() ?: 0
+                    if (producto != null && cantidad > 0) {
+                        cotizacionViewModel.agregarProductoDeLista(producto, cantidad, nombreCliente)
+                        productoSeleccionado = null
+                        cantidadInput = "1"
                     }
                 },
+                enabled = productoSeleccionado != null && (cantidadInput.toIntOrNull() ?: 0) > 0,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Agregar Producto", fontSize = 12.sp)

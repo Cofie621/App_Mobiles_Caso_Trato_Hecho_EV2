@@ -3,6 +3,7 @@ package com.example.myapplication.repository
 import android.content.Context
 import com.example.myapplication.AlmacenamientoLocal
 import com.example.myapplication.model.CotizacionItem
+import com.example.myapplication.model.Producto
 import com.example.myapplication.data.remote.CotizacionRequest
 import com.example.myapplication.data.remote.LoginRequest
 import com.example.myapplication.data.remote.LoginResponse
@@ -78,7 +79,23 @@ class CotizacionRepository(private val context: Context) {
     }
 
     /**
-     * Obtiene las cotizaciones guardadas en el servidor (GET api/cotizaciones).
+     * Obtiene los productos de la tabla "productos" (GET api/productos.php).
+     */
+    suspend fun obtenerProductos(): Result<List<Producto>> {
+        return try {
+            val response = api.obtenerProductos()
+            if (response.isSuccessful) {
+                Result.success(response.body() ?: emptyList())
+            } else {
+                Result.failure(Exception("Error servidor: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Obtiene las cotizaciones guardadas en el servidor (GET api/cotizaciones.php).
      */
     suspend fun obtenerCotizacionesServidor(): Result<List<CotizacionItem>> {
         return try {

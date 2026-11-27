@@ -88,7 +88,7 @@ fun RegistroClienteScreen (
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp),
                             shape = RoundedCornerShape(6.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xF8F9FA))
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F9FA))
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text(

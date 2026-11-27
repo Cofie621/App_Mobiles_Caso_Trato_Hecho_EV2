@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.myapplication.AlmacenamientoLocal
 import com.example.myapplication.model.CotizacionEstado
 import com.example.myapplication.model.CotizacionItem
+import com.example.myapplication.model.Producto
 import com.example.myapplication.repository.CotizacionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +26,61 @@ class CotizacionViewModel(application: Application) : AndroidViewModel(applicati
 
     // Controla si el trabajador agregó al menos un producto en esta sesión
     private var productoAgregadoEnSesion = false
+
+    init {
+        // Apenas se crea el ViewModel, pedimos los productos a la API
+        cargarProductos()
+    }
+
+    /**
+     * Pide a la API la lista de productos (GET api/productos.php)
+     * y la deja en el estado para que la pantalla la muestre.
+     */
+    fun cargarProductos() {
+        _uiState.update { it.copy(cargandoProductos = true, errorProductos = null) }
+
+        viewModelScope.launch {
+            repository.obtenerProductos()
+                .onSuccess { lista ->
+                    _uiState.update {
+                        it.copy(
+                            productos = lista,
+                            cargandoProductos = false,
+                            errorProductos = if (lista.isEmpty()) "No hay productos en la base de datos" else null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(
+                            cargandoProductos = false,
+                            errorProductos = "No se pudieron cargar los productos: ${error.message ?: "sin conexión"}"
+                        )
+                    }
+                }
+        }
+    }
+
+    /**
+     * Agrega a la cotización un producto elegido de la lista de la API.
+     * El nombre y el precio salen de la base de datos (no se escriben a mano).
+     */
+    fun agregarProductoDeLista(producto: Producto, cantidad: Int, nombreCliente: String) {
+        val nuevoItem = CotizacionItem(
+            descripcion = producto.nombre,
+            precio = producto.precio,
+            cantidad = cantidad.coerceAtLeast(1),
+            NombreCliente = nombreCliente,
+            productoId = producto.id
+        )
+        productoAgregadoEnSesion = true
+
+        _uiState.update { currentState ->
+            val listaActualizada = currentState.items + nuevoItem
+            AlmacenamientoLocal.guardarCotizaciones(context, listaActualizada)
+            currentState.copy(items = listaActualizada, mensajeEnvio = null)
+        }
+    }
 
     fun cambiarMoneda(nuevaMoneda: String) {
         _uiState.update { it.copy(moneda = nuevaMoneda) }
